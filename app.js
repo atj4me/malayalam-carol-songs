@@ -104,7 +104,11 @@ document.getElementById('scanToggle').addEventListener('click', function () {
 });
 /* ---------- Sing-along: line highlight + auto-scroll ---------- */
 const SPEEDS = [0.6, 0.8, 1, 1.25, 1.5, 2];
-const BASE_MS = 2400; /* time per line at 1x */
+/* Singing time for one pass of a line, scaled by its length so long lines
+   get more time than short ones: ~2.4s for a typical line at 1x. */
+function lineMs(text) {
+  return Math.min(4200, Math.max(1400, 900 + text.length * 30));
+}
 let steps = [];        /* {el, text, beats, stanza, refStanza} per singable line */
 let seq = [];          /* play queue of step indices; reference lines expand to their stanza */
 let doneSet = new Set();
@@ -175,6 +179,10 @@ function buildLines(lyrics) {
       }
     }
   });
+  steps.forEach(function (st) {
+    /* A reference line is just a signpost — a short pause, then the chorus. */
+    st.ms = st.isRef ? 900 : lineMs(st.text) * st.beats;
+  });
   steps.forEach(function (st, i) {
     seq.push(i);
     if (st.refStanza) st.refStanza.forEach(function (j) { seq.push(j); });
@@ -194,7 +202,7 @@ function setCurrent(stepIdx, scroll) {
 function scheduleNext() {
   clearTimeout(playTimer);
   if (!playing || qpos < 0 || qpos >= seq.length) return;
-  const ms = steps[seq[qpos]].beats * BASE_MS / SPEEDS[speedIdx];
+  const ms = steps[seq[qpos]].ms / SPEEDS[speedIdx];
   playTimer = setTimeout(function () {
     doneSet.add(seq[qpos]);
     qpos++;
