@@ -151,24 +151,22 @@ function buildLines(lyrics) {
     d.className = 'l-line';
     d.textContent = t;
     const idx = steps.length;
-    const isRef = /^\(.*\)$/.test(t);
+    const bare = t.replace(/\(2\)\s*$/, '').trim(); /* a trailing (2) is a repeat marker, not text */
+    const isRef = /^\(.*\)$/.test(bare);
     if (isRef) d.classList.add('l-ref');
     steps.push({
-      el: d, text: t, stanza: stanza, isRef: isRef, refStanza: null,
-      beats: (/\(2\)\s*$/.test(t) || /\}\s*2\s*$/.test(t)) ? 2 : 1
+      el: d, text: t, bare: bare, stanza: stanza, isRef: isRef, refStanza: null,
+      marker: /\(2\)\s*$/.test(t),
+      braceMarker: /\}\s*2\s*$/.test(t)
     });
     d.addEventListener('click', function () { jumpTo(idx); });
     lyricsEl.appendChild(d);
   });
-  /* A couplet brace spans two lines: if the first ends "} 2", the closing "}" line repeats too. */
-  for (let i = 1; i < steps.length; i++) {
-    if (/\}\s*$/.test(steps[i].text) && steps[i].beats === 1 && /\}\s*2\s*$/.test(steps[i - 1].text)) steps[i].beats = 2;
-  }
   /* Resolve reference lines like "(ഇന്നു രാവിൽ കുഞ്ഞാട്ട......)": they point at the
      stanza whose first line starts with the text inside the brackets. */
   steps.forEach(function (st) {
     if (!st.isRef) return;
-    const prefix = st.text.replace(/^\(|\)$/g, '').replace(/[.….]+$/, '').trim();
+    const prefix = st.bare.replace(/^\(|\)$/g, '').replace(/[.….]+$/, '').trim();
     if (prefix.length < 6) return;
     for (let i = 0; i < steps.length; i++) {
       if (steps[i].text.indexOf(prefix) === 0) {
@@ -181,12 +179,33 @@ function buildLines(lyrics) {
   });
   steps.forEach(function (st) {
     /* A reference line is just a signpost — a short pause, then the chorus. */
-    st.ms = st.isRef ? 900 : lineMs(st.text) * st.beats;
+    st.ms = st.isRef ? 900 : lineMs(st.text);
   });
-  steps.forEach(function (st, i) {
+  /* Build the play queue. A "(2)" repeats its whole SECTION — the lines from the
+     previous marker (or the section start) up to and including the marked line —
+     not just the marked line. A "} 2" brace covers the marked line and the next. */
+  function pushStep(i) {
     seq.push(i);
-    if (st.refStanza) st.refStanza.forEach(function (j) { seq.push(j); });
-  });
+    if (steps[i].refStanza) steps[i].refStanza.forEach(function (j) { seq.push(j); });
+  }
+  function flushUnit(unit, repeat) {
+    unit.forEach(pushStep);
+    if (repeat) unit.forEach(pushStep);
+  }
+  let unit = [];
+  let unitStanza = steps.length ? steps[0].stanza : 0;
+  for (let i = 0; i < steps.length; i++) {
+    const st = steps[i];
+    if (st.stanza !== unitStanza) { flushUnit(unit, false); unit = []; unitStanza = st.stanza; }
+    unit.push(i);
+    if (st.braceMarker) {
+      if (i + 1 < steps.length && steps[i + 1].stanza === st.stanza) { unit.push(i + 1); i++; }
+      flushUnit(unit, true); unit = [];
+    } else if (st.marker) {
+      flushUnit(unit, true); unit = [];
+    }
+  }
+  flushUnit(unit, false);
 }
 
 function setCurrent(stepIdx, scroll) {
