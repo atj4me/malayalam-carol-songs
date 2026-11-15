@@ -5,7 +5,16 @@ const searchInput = document.getElementById('search');
 const noResults = document.getElementById('noResults');
 const lyricsEl = document.getElementById('lyrics');
 
-let fontSize = parseFloat(localStorage.getItem('carolFontSize') || '1.22');
+let fontSize = parseFloat(localStorage.getItem('carolFontSize') || '1.38');
+if (localStorage.getItem('carolTheme') === 'light') document.body.classList.add('light');
+const themeBtn = document.getElementById('themeToggle');
+function syncThemeBtn() { themeBtn.textContent = document.body.classList.contains('light') ? '🌙 Dark' : '☀ Light'; }
+syncThemeBtn();
+themeBtn.addEventListener('click', function () {
+  document.body.classList.toggle('light');
+  localStorage.setItem('carolTheme', document.body.classList.contains('light') ? 'light' : 'dark');
+  syncThemeBtn();
+});
 const countEl = document.getElementById('songCount');
 if (countEl) countEl.textContent = SONGS.length;
 
@@ -42,7 +51,9 @@ function showSong(n) {
   lyricsEl.style.fontSize = fontSize + 'rem';
   const scanWrap = document.getElementById('scanWrap');
   scanWrap.hidden = true;
-  document.getElementById('scanToggle').textContent = 'Original scan';
+  const scanBtn = document.getElementById('scanToggle');
+  scanBtn.textContent = 'Original scan';
+  scanBtn.classList.remove('active');
   document.getElementById('scanImg').src = (typeof SONG_IMAGES !== 'undefined' && SONG_IMAGES[s.n])
     ? SONG_IMAGES[s.n]
     : 'images/song-' + String(s.n).padStart(2, '0') + '.jpg';
@@ -86,6 +97,8 @@ document.getElementById('scanToggle').addEventListener('click', function () {
   const wrap = document.getElementById('scanWrap');
   wrap.hidden = !wrap.hidden;
   this.textContent = wrap.hidden ? 'Original scan' : 'Hide scan';
+  this.classList.toggle('active', !wrap.hidden);
+  if (!wrap.hidden) wrap.scrollIntoView({ block: 'start' });
 });
 window.addEventListener('hashchange', route);
 route();

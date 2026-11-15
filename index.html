@@ -11,6 +11,8 @@
 <header class="topbar">
   <a class="brand" href="#/">🎄 Malayalam Carol Songs</a>
   <span class="subtitle">Carol songs · <span id="songCount">14</span> songs</span>
+  <span class="spacer"></span>
+  <button class="btn" id="themeToggle" type="button">☀ Light</button>
 </header>
 
 <main id="listView">
@@ -32,10 +34,11 @@
   <h1 id="songMl" class="song-ml"></h1>
   <p id="songTitle" class="song-title"></p>
   <p id="songNote" class="song-note" hidden></p>
-  <article id="lyrics" class="lyrics"></article>
   <figure id="scanWrap" class="scanwrap" hidden>
     <img id="scanImg" alt="Original page from the Carol 2024 PDF">
+    <figcaption class="scancap">Original page from the song book — pinch to zoom.</figcaption>
   </figure>
+  <article id="lyrics" class="lyrics"></article>
   <p id="sourceWrap" class="source" hidden>Source: <a id="sourceLink" target="_blank" rel="noopener"></a></p>
   <nav class="prevnext">
     <a class="btn" id="prevBtn" href="#">← Previous</a>
