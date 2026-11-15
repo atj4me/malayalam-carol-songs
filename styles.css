@@ -65,6 +65,10 @@ main { max-width: 780px; margin: 0 auto; padding: 1rem 1.25rem 2rem; }
   position: sticky; top: 4.1rem; z-index: 5;
   background: var(--bg); padding: .55rem 0;
 }
+@media (max-width: 600px) {
+  .songnav { top: 6.4rem; }
+  .songnav .btn { padding: .55rem .8rem; }
+}
 .prevnext { justify-content: space-between; margin-top: 2rem; }
 .spacer { flex: 1; }
 .btn {
