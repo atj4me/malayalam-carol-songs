@@ -115,6 +115,7 @@ let wakeLock = null;
 const playBtn = document.getElementById('playBtn');
 const playerBar = document.getElementById('playerBar');
 const speedLabel = document.getElementById('speedLabel');
+const startHint = document.getElementById('startHint');
 
 function buildLines(lyrics) {
   steps = [];
@@ -178,6 +179,7 @@ function startPlayer(fromIdx) {
   if (!steps.length) return;
   playing = true;
   playerBar.hidden = false;
+  if (startHint) startHint.hidden = true;
   playBtn.textContent = '⏸ Pause';
   playBtn.classList.add('active');
   setCurrent(typeof fromIdx === 'number' ? fromIdx : Math.max(playIdx, 0));
@@ -199,6 +201,7 @@ function stopPlayer() {
   playTimer = null;
   if (playBtn) { playBtn.textContent = '▶ Sing-along'; playBtn.classList.remove('active'); }
   if (playerBar) playerBar.hidden = true;
+  if (startHint) startHint.hidden = false;
   steps.forEach(function (st) { st.el.classList.remove('current', 'done'); });
   playIdx = -1;
   keepAwake(false);
