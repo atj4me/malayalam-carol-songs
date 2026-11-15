@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Malayalam Carol Songs — Lyrics</title>
+<meta name="description" content="Select and read Malayalam Christmas carol song lyrics — Carol 2024 song book.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="#/">🎄 Malayalam Carol Songs</a>
+  <span class="subtitle">Carol songs · <span id="songCount">14</span> songs</span>
+</header>
+
+<main id="listView">
+  <div class="searchwrap">
+    <input id="search" type="search" placeholder="Search — type in English or Malayalam…" autocomplete="off">
+  </div>
+  <ol id="songList" class="songlist"></ol>
+  <p id="noResults" class="noresults" hidden>No songs match that search.</p>
+</main>
+
+<main id="songView" hidden>
+  <nav class="songnav">
+    <a class="btn" href="#/">← All songs</a>
+    <span class="spacer"></span>
+    <button class="btn" id="fontDown" type="button" aria-label="Smaller text">A−</button>
+    <button class="btn" id="fontUp" type="button" aria-label="Bigger text">A+</button>
+    <button class="btn" id="scanToggle" type="button">Original scan</button>
+  </nav>
+  <h1 id="songMl" class="song-ml"></h1>
+  <p id="songTitle" class="song-title"></p>
+  <p id="songNote" class="song-note" hidden></p>
+  <article id="lyrics" class="lyrics"></article>
+  <figure id="scanWrap" class="scanwrap" hidden>
+    <img id="scanImg" alt="Original page from the Carol 2024 PDF">
+  </figure>
+  <p id="sourceWrap" class="source" hidden>Source: <a id="sourceLink" target="_blank" rel="noopener"></a></p>
+  <nav class="prevnext">
+    <a class="btn" id="prevBtn" href="#">← Previous</a>
+    <a class="btn" id="nextBtn" href="#">Next →</a>
+  </nav>
+</main>
+
+<footer class="footer">Lyrics transcribed from the Carol 2024 song book (PDF). Tap “Original scan” on any song to see the source page.</footer>
+
+<script src="songs.js"></script>
+<script src="images.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
