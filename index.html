@@ -30,7 +30,17 @@
     <button class="btn" id="fontDown" type="button" aria-label="Smaller text">A−</button>
     <button class="btn" id="fontUp" type="button" aria-label="Bigger text">A+</button>
     <button class="btn" id="scanToggle" type="button">Original scan</button>
+    <button class="btn" id="playBtn" type="button">▶ Sing-along</button>
   </nav>
+  <div id="playerBar" class="playerbar" hidden>
+    <button class="btn" id="restartBtn" type="button">⏮ Restart</button>
+    <span class="speedctl">Speed
+      <button class="btn" id="speedDown" type="button">−</button>
+      <span id="speedLabel">1×</span>
+      <button class="btn" id="speedUp" type="button">+</button>
+    </span>
+    <span class="playerhint">Tap any line to jump to it · lines marked (2) stay highlighted for both times through</span>
+  </div>
   <h1 id="songMl" class="song-ml"></h1>
   <p id="songTitle" class="song-title"></p>
   <p id="songNote" class="song-note" hidden></p>
