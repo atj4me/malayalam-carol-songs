@@ -90,6 +90,10 @@ main { max-width: 780px; margin: 0 auto; padding: 1rem 1.25rem 2rem; }
 .l-line.done { opacity: .5; }
 .l-line.current { background: var(--accent); color: #241a08; font-weight: 700; opacity: 1; }
 body.light .l-line.current { background: var(--accent); color: #fff; }
+.l-ref { color: var(--muted); font-style: italic; }
+.l-ref::after { content: " ↩ sing the part above again"; font-size: .72em; font-style: normal; color: var(--accent); }
+.l-ref.current { color: #241a08; font-style: normal; }
+body.light .l-ref.current { color: #fff; }
 .l-gap { height: .85em; }
 .l-sep { color: var(--muted); padding: .05em .35em; }
 .playerbar { display: flex; gap: .6rem 1rem; align-items: center; flex-wrap: wrap; margin: .2rem 0 .4rem; }

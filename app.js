@@ -105,8 +105,10 @@ document.getElementById('scanToggle').addEventListener('click', function () {
 /* ---------- Sing-along: line highlight + auto-scroll ---------- */
 const SPEEDS = [0.6, 0.8, 1, 1.25, 1.5, 2];
 const BASE_MS = 2400; /* time per line at 1x */
-let steps = [];        /* {el, beats} for each singable line */
-let playIdx = -1;
+let steps = [];        /* {el, text, beats, stanza, refStanza} per singable line */
+let seq = [];          /* play queue of step indices; reference lines expand to their stanza */
+let doneSet = new Set();
+let qpos = -1;
 let playTimer = null;
 let playing = false;
 let speedIdx = 2;
@@ -119,14 +121,18 @@ const startHint = document.getElementById('startHint');
 
 function buildLines(lyrics) {
   steps = [];
-  playIdx = -1;
+  seq = [];
+  doneSet = new Set();
+  qpos = -1;
   lyricsEl.innerHTML = '';
+  let stanza = 0;
   lyrics.split('\n').forEach(function (raw) {
     const t = raw.trim();
     if (!t) {
       const gap = document.createElement('div');
       gap.className = 'l-gap';
       lyricsEl.appendChild(gap);
+      stanza++;
       return;
     }
     if (/^—+$/.test(t)) {
@@ -134,36 +140,66 @@ function buildLines(lyrics) {
       sep.className = 'l-sep';
       sep.textContent = t;
       lyricsEl.appendChild(sep);
+      stanza++;
       return;
     }
     const d = document.createElement('div');
     d.className = 'l-line';
     d.textContent = t;
     const idx = steps.length;
-    steps.push({ el: d, beats: /\(2\)\s*$/.test(t) ? 2 : 1 });
+    const isRef = /^\(.*\)$/.test(t);
+    if (isRef) d.classList.add('l-ref');
+    steps.push({
+      el: d, text: t, stanza: stanza, isRef: isRef, refStanza: null,
+      beats: (/\(2\)\s*$/.test(t) || /\}\s*2\s*$/.test(t)) ? 2 : 1
+    });
     d.addEventListener('click', function () { jumpTo(idx); });
     lyricsEl.appendChild(d);
   });
+  /* A couplet brace spans two lines: if the first ends "} 2", the closing "}" line repeats too. */
+  for (let i = 1; i < steps.length; i++) {
+    if (/\}\s*$/.test(steps[i].text) && steps[i].beats === 1 && /\}\s*2\s*$/.test(steps[i - 1].text)) steps[i].beats = 2;
+  }
+  /* Resolve reference lines like "(ഇന്നു രാവിൽ കുഞ്ഞാട്ട......)": they point at the
+     stanza whose first line starts with the text inside the brackets. */
+  steps.forEach(function (st) {
+    if (!st.isRef) return;
+    const prefix = st.text.replace(/^\(|\)$/g, '').replace(/[.….]+$/, '').trim();
+    if (prefix.length < 6) return;
+    for (let i = 0; i < steps.length; i++) {
+      if (steps[i].text.indexOf(prefix) === 0) {
+        const target = steps[i].stanza;
+        st.refStanza = steps.filter(function (x) { return x.stanza === target; })
+          .map(function (x) { return steps.indexOf(x); });
+        break;
+      }
+    }
+  });
+  steps.forEach(function (st, i) {
+    seq.push(i);
+    if (st.refStanza) st.refStanza.forEach(function (j) { seq.push(j); });
+  });
 }
 
-function setCurrent(i, scroll) {
+function setCurrent(stepIdx, scroll) {
   steps.forEach(function (st, j) {
-    st.el.classList.toggle('current', j === i);
-    st.el.classList.toggle('done', j < i);
+    st.el.classList.toggle('current', j === stepIdx);
+    st.el.classList.toggle('done', doneSet.has(j) && j !== stepIdx);
   });
-  playIdx = i;
-  if (i >= 0 && steps[i] && scroll !== false) {
-    steps[i].el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  if (stepIdx >= 0 && steps[stepIdx] && scroll !== false) {
+    steps[stepIdx].el.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }
 }
 
 function scheduleNext() {
   clearTimeout(playTimer);
-  if (!playing || playIdx < 0) return;
-  const ms = steps[playIdx].beats * BASE_MS / SPEEDS[speedIdx];
+  if (!playing || qpos < 0 || qpos >= seq.length) return;
+  const ms = steps[seq[qpos]].beats * BASE_MS / SPEEDS[speedIdx];
   playTimer = setTimeout(function () {
-    if (playIdx + 1 >= steps.length) { stopPlayer(); return; }
-    setCurrent(playIdx + 1);
+    doneSet.add(seq[qpos]);
+    qpos++;
+    if (qpos >= seq.length) { stopPlayer(); return; }
+    setCurrent(seq[qpos]);
     scheduleNext();
   }, ms);
 }
@@ -175,14 +211,16 @@ async function keepAwake(on) {
   } catch (e) { /* wake lock is best-effort */ }
 }
 
-function startPlayer(fromIdx) {
-  if (!steps.length) return;
+function startPlayer(fromStep) {
+  if (!seq.length) return;
   playing = true;
   playerBar.hidden = false;
   if (startHint) startHint.hidden = true;
   playBtn.textContent = '⏸ Pause';
   playBtn.classList.add('active');
-  setCurrent(typeof fromIdx === 'number' ? fromIdx : Math.max(playIdx, 0));
+  if (typeof fromStep === 'number') { qpos = Math.max(0, seq.indexOf(fromStep)); doneSet = new Set(seq.slice(0, qpos)); }
+  else if (qpos < 0) qpos = 0;
+  setCurrent(seq[qpos]);
   scheduleNext();
   keepAwake(true);
 }
@@ -203,25 +241,32 @@ function stopPlayer() {
   if (playerBar) playerBar.hidden = true;
   if (startHint) startHint.hidden = false;
   steps.forEach(function (st) { st.el.classList.remove('current', 'done'); });
-  playIdx = -1;
+  doneSet = new Set();
+  qpos = -1;
   keepAwake(false);
 }
 
-function jumpTo(i) {
-  if (!playing && playIdx < 0) { startPlayer(i); return; }
-  const wasPlaying = playing;
-  if (wasPlaying || playIdx >= 0) {
-    setCurrent(i);
-    if (wasPlaying) scheduleNext();
-    else { playing = true; playBtn.textContent = '⏸ Pause'; playBtn.classList.add('active'); playerBar.hidden = false; scheduleNext(); keepAwake(true); }
+function jumpTo(stepIdx) {
+  if (qpos < 0) { startPlayer(stepIdx); return; }
+  qpos = Math.max(0, seq.indexOf(stepIdx));
+  doneSet = new Set(seq.slice(0, qpos));
+  setCurrent(seq[qpos]);
+  if (!playing) {
+    playing = true;
+    playerBar.hidden = false;
+    if (startHint) startHint.hidden = true;
+    playBtn.textContent = '⏸ Pause';
+    playBtn.classList.add('active');
+    keepAwake(true);
   }
+  scheduleNext();
 }
 
 playBtn.addEventListener('click', function () {
   if (playing) pausePlayer();
   else startPlayer();
 });
-document.getElementById('restartBtn').addEventListener('click', function () { startPlayer(0); });
+document.getElementById('restartBtn').addEventListener('click', function () { doneSet = new Set(); startPlayer(0); });
 document.getElementById('speedUp').addEventListener('click', function () {
   speedIdx = Math.min(SPEEDS.length - 1, speedIdx + 1);
   speedLabel.textContent = SPEEDS[speedIdx] + '×';
